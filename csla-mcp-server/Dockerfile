@@ -12,12 +12,25 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 ARG VERSION=1.0.0
+ARG SKIP_EMBEDDINGS=true
 WORKDIR /src
 COPY ["csla-mcp-server/csla-mcp-server.csproj", "csla-mcp-server/"]
 RUN dotnet restore "./csla-mcp-server/csla-mcp-server.csproj"
 COPY . .
 WORKDIR "/src/csla-mcp-server"
 RUN dotnet build "./csla-mcp-server.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:InformationalVersion=$VERSION
+
+# Generate the embeddings file if SKIP_EMBEDDINGS is false, otherwise create an empty file to avoid build errors in the final stage
+RUN echo "[]" > /embeddings.json
+# if SKIP_EMBEDDINGS is false, run the script to generate the embeddings file
+RUN if [ "$SKIP_EMBEDDINGS" = "false" ]; then \
+      echo "Building embeddings generator..." \
+      dotnet build csla-embeddings-generator/csla-embeddings-generator.csproj -c Release \
+      echo "Generating embeddings..." \
+      dotnet run --project csla-embeddings-generator/csla-embeddings-generator.csproj --configuration Release -- --examples-path ./csla-examples --output /embeddings.json \
+    else \
+      echo "Skipping embeddings generation..."; \
+    fi
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
@@ -32,5 +45,5 @@ COPY --from=build /src/csla-examples /csla-examples
 WORKDIR /app
 COPY --from=publish /app/publish .
 # Copy pre-generated embeddings (created by build.sh script)
-COPY embeddings.json ./embeddings.json
+COPY --from=build /embeddings.json ./embeddings.json
 ENTRYPOINT ["dotnet", "csla-mcp-server.dll"]
