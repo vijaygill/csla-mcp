@@ -27,4 +27,6 @@ echo "Building Docker container..."
 docker build -t csla-mcp-server:latest \
   --build-arg VERSION=$VERSION \
   --build-arg SKIP_EMBEDDINGS=$SKIP_EMBEDDINGS \
+  --build-arg AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT \
+  --build-arg AZURE_OPENAI_API_KEY=$AZURE_OPENAI_API_KEY \
   -f csla-mcp-server/Dockerfile .
