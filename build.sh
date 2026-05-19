@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Parse command line arguments
-SKIP_EMBEDDINGS=false
+SKIP_EMBEDDINGS=true
 while [[ $# -gt 0 ]]; do
   case $1 in
     --skip-embeddings|-s)
